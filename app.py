@@ -55,10 +55,10 @@ def get_lists_todos(list_id):
     #jinja templating solution in flask: allows to embed non-html content to html files
     #render_template will go and look for the 'index.html' file in a templates folder inside the root folder
 
-    lists = render_template('index.html', list=TodoList.query.filter_by(list_id=list_id).order_by('id').all())
-    todos = render_template('index.html', todo=Todo.query.filter_by(todos=list_id).order_by('todso').all())
+    lists = TodoList.query.order_by('id').all()
+    todos = Todo.query.filter_by(list_id=list_id).order_by('id').all()
     
-    return lists
+    return render_template('index.html',lists=lists, todos=todos)
 
     #return render_template('index.html', data=Todo.query.filter_by(list_id=list_id).order_by('id').all())
 

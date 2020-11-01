@@ -24,28 +24,47 @@
             border: none;
             float: right;
         }
+        .wrapper{
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
     <h1>My Todo List in python with databases :)</h1>
-    <ul id="todo_list">
-        {% for d in data %}
-        <li>
-            <input type="checkbox" data-id="{{d.id}}" {% if d.completed %} checked {% endif %}>{{d.description}}
-            <button class="delete" data-id="{{ d.id }}">&#10005;</button>
-        </li>
-        {% endfor %}
-    </ul>
-
-    <form id="form">
-        <!--<input type="text" name="id" id="id">-->
-        <input type="text" name="description" id="description">
-        <input type="submit" value="submit">
-    </form>
-    <div id="error" class="hidden">Something went wrong</div>
+    <div class="wrapper">
+        <ul id="todo_list">
+            {% for list in lists %}
+            <li>
+                <a href="/lists/{{list.id}}">{{list.name}}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    
+        <form id="form">
+            <!--<input type="text" name="id" id="id">-->
+            <input type="text" name="description" id="description">
+            <input type="submit" value="submit">
+        </form>
+    </div>
+    <div class="wrapper">
+        <ul id="todos">
+            {% for todo in todos %}
+                <li>
+                    <input type="checkbox" data-id="{{todo.id}}">
+                    {{todo.description}}
+                    <button class="delete" data-id="{{ todo.id }}">&#10005;</button>
+                </li>
+            {% endfor%}
+        </ul>
+    </div>
+    
+    <!--
+<div id="error" class="hidden">Something went wrong</div>
     {% for d in form %}
     <p>{{d}}</p>
     {% endfor %}
+    -->
+    
     <script>
         document.querySelectorAll('.delete').forEach(function(element){
             element.onclick = (e)=>{
