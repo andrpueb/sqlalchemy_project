@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "/Users/andrespuentes/Documents/Udacity_Full_Stack /interacting_with_databases/demos"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.linting.pylintPath": "/Users/andrespuentes/opt/anaconda3/bin/pylint"
+	}
+}

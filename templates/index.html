@@ -1,0 +1,122 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To do app</title>
+    <style>
+        .hidden{
+            display: none;
+        }
+        ul{
+            padding: 0px;
+        }
+        li{
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 300px;
+        }
+        .delete{
+            color: red;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Todo List in python with databases :)</h1>
+    <ul id="todo_list">
+        {% for d in data %}
+        <li>
+            <input type="checkbox" data-id="{{d.id}}" {% if d.completed %} checked {% endif %}>{{d.description}}
+            <button class="delete" data-id="{{ d.id }}">&#10005;</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <form id="form">
+        <!--<input type="text" name="id" id="id">-->
+        <input type="text" name="description" id="description">
+        <input type="submit" value="submit">
+    </form>
+    <div id="error" class="hidden">Something went wrong</div>
+    {% for d in form %}
+    <p>{{d}}</p>
+    {% endfor %}
+    <script>
+        document.querySelectorAll('.delete').forEach(function(element){
+            element.onclick = (e)=>{
+                const deleteTodo = e.target.dataset['id'];
+                console.log(deleteTodo)
+                fetch('/todos/' + deleteTodo ,{
+                    method: 'DELETE',
+                })
+                .then((response)=>{
+                    return response.json()
+                })
+                .then((json_response)=>{
+                    console.log(json_response)
+                    document.querySelector('[data-id="'+deleteTodo+'"').parentNode.remove()
+                })
+                .catch((error) =>{
+                    document.getElementById('error').classList.remove('hidden');
+                    console.log(error)
+                })
+            }
+        })
+
+
+
+        document.querySelectorAll('input[type="checkbox"]').forEach(function(element){
+            element.onchange = (e)=>{
+                const newCompleted = e.target.checked;
+                const todoId = e.target.dataset['id'];
+                //here we send some data in the URL todoId which is then grabbed by the handler in the app
+                fetch('/todos/' + todoId + '/set-completed',{
+                    method: 'POST',
+                    body: JSON.stringify({
+                        'completed': newCompleted                    
+                        }),
+                    headers:{
+                        'Content-Type' : 'application/json'
+                    }
+                })
+                .catch((error) =>{
+                    document.getElementById('error').classList.remove('hidden');
+                })
+            }
+        })
+
+
+        document.getElementById('form').onsubmit = function(e){
+            e.preventDefault()
+            fetch('/create',{
+            method: 'POST',
+            body: JSON.stringify({
+                'description' : document.getElementById('description').value
+            }),
+            headers: {
+                'Content-Type' : 'application/json'
+            }
+        })
+        .then(function(response){
+            return response.json();
+        })
+        .then(function(json_response){
+            console.log(json_response);
+            const new_li = document.createElement('li');
+            new_li.innerHTML = json_response.description;
+            document.getElementById('todo_list').appendChild(new_li);
+        })
+        .catch((error) =>{
+            document.getElementById('error').classList.remove('hidden');
+        })
+        };
+
+    </script>
+
+</body>
+</html>
