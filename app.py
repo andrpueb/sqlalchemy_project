@@ -37,7 +37,9 @@ class TodoList(db.Model):
     __tablename__ = 'todolists'
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(), nullable=False)
-    todos = db.relationship('Todo', backref='list', lazy=True)#We define the relationship, this is defined in the Parent class
+    todos = db.relationship('Todo', backref='list', lazy=True, cascade='all, delete-orphan')
+    #We define the relationship, this is defined in the Parent class
+    #cascae='all, delete-orphan' adds a functionality so when a parent is deleted or a child ends with no parent it's the marked to be deleted
 
 
 #executes all the past config
@@ -57,15 +59,15 @@ def get_lists_todos(list_id):
 
     lists = TodoList.query.order_by('id').all()
     todos = Todo.query.filter_by(list_id=list_id).order_by('id').all()
-    
-    return render_template('index.html',lists=lists, todos=todos)
+    active_list = TodoList.query.filter_by(id=list_id)
+    return render_template('index.html',lists=lists, todos=todos, active_list=active_list)
 
     #return render_template('index.html', data=Todo.query.filter_by(list_id=list_id).order_by('id').all())
 
 #we define the route and add an aurgument with the methos that the form will use
 #this is our controller
-@app.route('/create', methods=['POST'])
-def create():
+@app.route('/create-todo', methods=['POST'])
+def create_todo():
     #we add a second argument as a fallback in case there is no data
     #description = request.form.get('description', '')
 
@@ -75,12 +77,17 @@ def create():
     try:
         #from the AJAX request we get the json object
         description = request.get_json()['description']
+        list_id = request.get_json()['activeList']
         print(description)
-        new_todo = Todo(description=description)
+        new_todo = Todo(description=description, list_id=list_id)
         db.session.add(new_todo)
         db.session.commit()
+        new_todo_id = new_todo.id
         #we add the description to the body so we keep it there in case everything works fine, we need to do this because we can't read from the new_todo object after it is commited, it will expire and we will get an error
         body['description'] = new_todo.description
+        body['list_id'] = list_id
+        body['todo_id'] = new_todo_id
+
     except:
         error = True
         db.session.rollback()
@@ -103,32 +110,71 @@ def create():
     #    'description': new_todo.description
     #})
 
-#in this route we added <todo_id> this let's us use that part as it is returned inside the function
-@app.route('/todos/<todo_id>/set-completed', methods=['POST'])
-def set_completed_todo(todo_id):
+@app.route('/create-list', methods=['POST'])
+def create_list():
+    error = False
+    body = {}
     try:
-        completed = request.get_json()['completed'] 
-        todo = Todo.query.get(todo_id)
-        todo.completed = completed
+        name = request.get_json()['name']
+        print(name)
+        new_list = TodoList(name=name)
+        db.session.add(new_list)
         db.session.commit()
-        body.completed = completed
+        body['name'] = new_list.name
+        body['list_id'] = new_list.id
+    except:
+        error = True
+        db.session.rollback()
+        print(sys.exc_info())
+    finally:
+        db.session.close()
+    if not error:
+        return jsonify(body)
+
+
+#in this route we added <todo_id> this let's us use that part as it is returned inside the function
+@app.route('/todos/<element_id>/set-completed', methods=['POST'])
+def set_completed_todo(element_id):
+    body = {}
+    try:
+        if request.get_json()['checkbox'] == 'todo':
+            completed = request.get_json()['completed'] 
+            todo = Todo.query.get(element_id)
+            todo.completed = completed
+            db.session.commit()
+        elif request.get_json()['checkbox'] == 'list':
+            completed = request.get_json()['completed']
+            print(completed)
+            todos = Todo.query.filter_by(list_id=element_id).all()
+            for row in todos:
+                row.completed = completed
+            db.session.commit()
+            body['list_id'] = element_id
     except:
         db.session.rollback()
         print(sys.exc_info())
     finally:
         db.session.close()
-    return redirect(url_for('index'))
-
-
+    return jsonify(body)
+    #return redirect(url_for('index'))
 
 @app.route('/todos/<todo_id>', methods=['DELETE'])
 def delete_todo(todo_id):
     body = {}
+
     try:
-        todo = Todo.query.get(todo_id)
-        db.session.delete(todo)
-        db.session.commit()
-        body['respuesta'] = 'done!'
+        entry_type = request.get_json()['entry_type']
+        entry_id = request.get_json()['entry_id']
+        if entry_type == 'list':
+            print('deleting')
+            delete_list = TodoList.query.get(entry_id)
+            db.session.delete(delete_list)
+            db.session.commit()
+        elif entry_type == 'todos': 
+            todo = Todo.query.get(todo_id)
+            db.session.delete(todo)
+            db.session.commit()
+            body['respuesta'] = 'done!'
     except:
         db.session.rollback()
         print(sys.exc_info())
